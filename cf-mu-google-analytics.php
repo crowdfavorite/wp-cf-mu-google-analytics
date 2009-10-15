@@ -8,6 +8,8 @@ Author: Crowd Favorite
 Author URI: http://crowdfavorite.com
 */
 
+
+
 // ini_set('display_errors', '1'); ini_set('error_reporting', E_ALL);
 
 if (!defined('PLUGINDIR')) {
@@ -22,6 +24,8 @@ else if (is_file(trailingslashit(ABSPATH.PLUGINDIR).dirname(__FILE__).'/'.basena
 	define('CFGA_FILE', trailingslashit(ABSPATH.PLUGINDIR).dirname(__FILE__).'/'.basename(__FILE__));
 }
 
+define('CFGA_MAIN_BLOG', apply_filters('cfga_main_blog_id',1));
+
 register_activation_hook(CFGA_FILE, 'cfga_install');
 
 function cfga_install() {
@@ -30,7 +34,7 @@ function cfga_install() {
 
 
 function cfga_init() {
-	if (is_admin() && !function_exists("cf_input_block")) {
+	if (is_admin() && !class_exists("cf_input_block")) {
 
 		echo '
 <div class="error">
@@ -38,25 +42,57 @@ function cfga_init() {
 	<p>The Required Plugin "CF-POST-META" either is not installed, or it needs to be activated. Please activate the plugin and try again.</p>
 </div>
 		';
-
 	}
+	echo '<pre>'.cfga_get_global_tracker_accounts().'</pre>';echo '<pre>'.cfga_get_local_tracker_accounts().'</pre>';
+	cfga_get_local_tracker_accounts();
+	// wp_die('testing the stinking code retrieval');
 }
 add_action('init', 'cfga_init');
 
 function cfga_get_global_tracker_accounts() {
-	$global_tracker_codes = get_option('cfga_global_tracking_codes');
-	// todo
-	return true;
+	$global_tracker_codes = get_blog_option(CFGA_MAIN_BLOG,'cfga_global_tracking_codes');
+	$global_tracker_codes = maybe_unserialize($global_tracker_codes);
+	if(count($global_tracker_codes) && !empty($global_tracker_codes)){
+		$global_script = '
+			// begin site wide tracker code
+		';
+		foreach ($global_tracker_codes as $tracker_code_name => $tracker_code_value) {
+			$global_script .= '
+			var pageTrackerMain'.$tracker_code_name.' = _gat._getTracker("'.$tracker_code_value['_tracking_code'].'");
+			pageTrackerMain'.$tracker_code_name.'._setDomainName("none");
+			pageTrackerMain'.$tracker_code_name.'._trackPageview();
+			';
+		}
+		$global_script .= '
+			// end site wide tracker code
+		';
 	
+		return $global_script;
+	}
 }
 
 function cfga_get_local_tracker_accounts() {
 	global $blog_id;
-	$local_tracker_codes = get_blog_option($blog_id, 'cfga_local_tracking_codes');
-	foreach ($local_tracker_codes as $tracker_code) {
-		// todo
+	$local_tracker_codes = get_option('cfga_local_tracking_codes');
+	$local_tracker_codes = maybe_unserialize($local_tracker_codes);
+	if (count($local_tracker_codes) && !empty($local_tracker_codes)) {
+		$local_script = '
+			// begin blog tracker code
+		';
+		foreach ($local_tracker_codes as $tracker_code_name => $tracker_code_value) {
+			$local_script .= '
+			var pageTrackerBlog'.$tracker_code_name.' = _gat._getTracker("'.$tracker_code_value['_tracking_code'].'");
+			pageTrackerBlog'.$tracker_code_name.'._setDomainName("none");
+			pageTrackerBlog'.$tracker_code_name.'._trackPageview();
+			';
+		}
+		$local_script .= '
+			// end blog tracker code
+		';
+
+		return $local_script;
 	}
-	return true;
+	return false;
 }
 
 function cfga_request_handler() {
@@ -88,39 +124,31 @@ function cfga_request_handler() {
 }
 add_action('init', 'cfga_request_handler');
 
-
 wp_enqueue_script('jquery');
 
-function cfga_setup_js() {
-	header('Content-type: text/javascript');
+function cfga_js() {
+$global_codes = cfga_get_global_tracker_accounts();
+$local_codes = cfga_get_local_tracker_accounts();
+	if($global_codes || $local_codes) {
 ?>
-
+<script type="text/javascript">
 var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
 document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
-
+</script>
+<script type="text/javascript" charset="utf-8">
+	try {
+	<?php
+		echo $global_codes;
+		echo $local_codes;
+	?>
+	} 
+	catch(err) {}
+</script>
 <?
-	die();
+	}
 }
-wp_enqueue_script('cfga_setup_js', trailingslashit(get_bloginfo('url')).'?cf_action=cfga_setup_js', array('jquery'));
-
-function cfga_insert_accounts_js() {
-	header('Content-type: text/javascript');
-?>
-
-try {
-<?php
-	echo cfga_get_global_tracker_accounts();
-	echo cfga_get_local_tracker_accounts()
-?>
-	var pageTracker = _gat._getTracker("UA-11109524-1");
-	pageTracker._trackPageview();
-} 
-catch(err) {}
-
-<?
-	die();
-}
-wp_enqueue_script('cfga_insert_accounts_js', trailingslashit(get_bloginfo('url')).'?cf_action=cfga_insert_accounts_js', array('jquery'));
+add_action('wp_footer','cfga_js',10);
+// wp_enqueue_script('cfga_setup_js', trailingslashit(get_bloginfo('url')).'?cf_action=cfga_setup_js', array('jquery'));
 
 function cfga_admin_js() {
 	header('Content-type: text/javascript');
@@ -152,10 +180,10 @@ $example_settings = array(
 */
 $cfga_settings = array(
 	'cfga_local_tracking_codes' => array(
-		'name' => '_cfga_local_tracking_codes',
+		'name' => 'cfga_local_tracking_codes',
 		'type' => 'block',
 		'label' => 'Google Analytics Tracking Codes for this Blog',
-		'block_label' => 'Google Analytics Tracking Codes for this Blog',
+		'block_label' => 'Google Analytics web property IDs to use for this Blog only',
 		'default' => '',
 		'help' => 'These tracking codes will aply to this blog only, and not to ',
 		'items' => array(
@@ -167,12 +195,13 @@ $cfga_settings = array(
 		)
 	),
 	'cfga_global_tracking_codes' => array(
-		'name' => '_cfga_global_tracking_codes',
+		'name' => 'cfga_global_tracking_codes',
 		'type' => 'block',
 		'label' => 'Google Analytics Tracking Codes for the Site',
-		'default' => 5,
+		'default' => '',
+		'blog_id' => CFGA_MAIN_BLOG,
 		'help' => '',
-		'block_label' => 'Google Analytics Tracking Codes for the Site',
+		'block_label' => 'Google Analytics web property IDs to use Site-wide',
 		'items' => array(
 			array(
 				'name' => '_tracking_code',
@@ -184,12 +213,19 @@ $cfga_settings = array(
 );
 
 function cfga_setting($option) {
-	$value = get_option($option);
+	if ($option == 'cfga_global_tracking_codes') {
+		switch_to_blog(CFGA_MAIN_BLOG);
+		$value = get_option($option);
+		restore_current_blog();
+	}
+	else {
+		$value = get_option($option);
+	}
 	if (empty($value)) {
 		global $cfga_settings;
 		$value = $cfga_settings[$option]['default'];
 	}
-	echo '<h3>setting '.$option.'</h3><pre>'.print_r($value,TRUE).'</pre>';
+	
 	return $value;
 }
 
@@ -216,55 +252,39 @@ function cfga_plugin_action_links($links, $file) {
 }
 add_filter('plugin_action_links', 'cfga_plugin_action_links', 10, 2);
 
-if (!function_exists('cf_settings_field')) {
-	function cf_settings_field($key, $config) {
-		$option = get_option($key);
-		$option = maybe_unserialize($option);
-		echo '<h3>key:</h3><p>'.$key.'</p>';
-		echo '<h3>Option:</h3><pre>'.print_r($option,TRUE).'</pre>';
-		if (empty($option) && !empty($config['default'])) {
-			$option = $config['default'];
-		}
-		$label = '<label for="'.$key.'">'.$config['label'].'</label>';
-		$help = '<span class="help">'.$config['help'].'</span>';
-		switch ($config['type']) {
-			case 'select':
-				$output = $label.'<select name="'.$key.'" id="'.$key.'">';
-				foreach ($config['options'] as $val => $display) {
-					$option == $val ? $sel = ' selected="selected"' : $sel = '';
-					$output .= '<option value="'.$val.'"'.$sel.'>'.htmlspecialchars($display).'</option>';
-				}
-				$output .= '</select>'.$help;
-				break;
-			case 'textarea':
-				$output = $label.'<textarea name="'.$key.'" id="'.$key.'">'.htmlspecialchars($option).'</textarea>'.$help;
-				break;
-			case 'block':
-	// 			$output = '
-	// <div class="postbox " id="cf_meta_related-posts_container">
-	// 	<div title="Click to toggle" class="handlediv"><br/></div>
-	// 	<h3 class="hndle"><span>Related Posts/Pages</span></h3>
-	// 	<div class="inside">
-	// 		<input type="hidden" value="1" name="cf_meta_active"/>
-	// 		<p/>
-	// 		<div class="cf_meta_set">
-	// 			';
-				$block = new cf_input_block($config);
-				$output .= $block->display();
-	// 			$output .= '
-	// 		</div>
-	// 	</div>
-	// </div>
-	// 			';
-				break;
-			case 'string':
-			case 'int':
-			default:
-				$output = $label.'<input name="'.$key.'" id="'.$key.'" value="'.htmlspecialchars($option).'" />'.$help;
-				break;
-		}
-		return '<div class="option">'.$output.'<div class="clear"></div></div>';
+
+function cfga_settings_field($key, $config) {
+	$option = cfga_setting($key);
+	$option = maybe_unserialize($option);
+	
+	if (empty($option) && !empty($config['default'])) {
+		$option = $config['default'];
 	}
+	$label = '<label for="'.$key.'">'.$config['label'].'</label>';
+	$help = '<span class="help">'.$config['help'].'</span>';
+	switch ($config['type']) {
+		case 'select':
+			$output = $label.'<select name="'.$key.'" id="'.$key.'">';
+			foreach ($config['options'] as $val => $display) {
+				$option == $val ? $sel = ' selected="selected"' : $sel = '';
+				$output .= '<option value="'.$val.'"'.$sel.'>'.htmlspecialchars($display).'</option>';
+			}
+			$output .= '</select>'.$help;
+			break;
+		case 'textarea':
+			$output = $label.'<textarea name="'.$key.'" id="'.$key.'">'.htmlspecialchars($option).'</textarea>'.$help;
+			break;
+		case 'block':
+			$block = new cfs_input_block($config);
+			$output .= $block->display();
+			break;
+		case 'string':
+		case 'int':
+		default:
+			$output = $label.'<input name="'.$key.'" id="'.$key.'" value="'.htmlspecialchars($option).'" />'.$help;
+			break;
+	}
+	return '<div class="option">'.$output.'<div class="clear"></div></div>';
 }
 
 function cfga_settings_form() {
@@ -279,8 +299,8 @@ function cfga_settings_form() {
 		<fieldset class="options">
 	');
 	foreach ($cfga_settings as $key => $config) {
-		if (current_user_can('manage_options') || $key != 'cfga_global_tracking_codes') {
-			echo cf_settings_field($key, $config);
+		if (is_site_admin() || $key != 'cfga_global_tracking_codes') {
+			echo cfga_settings_field($key, $config);
 		}
 		
 	}
@@ -312,11 +332,15 @@ function cfga_save_settings() {
 				}
 				break;
 			case 'block':
-				echo '<h3>submited value</h3><pre>'.print_r($_POST['blocks']['_'.$key], TRUE).'</pre>';
-				$value = serialize($_POST['blocks']['_'.$key]);
-				echo '<p>'.$value.'</p>';
-				// wp_die('');
-				# code...
+				
+				$test_array = array_values($_POST['blocks'][$key]);
+				
+				if (empty($test_array[0]['_tracking_code'])) {
+					$value = 0;
+				}
+				else{
+					$value = serialize($_POST['blocks'][$key]);
+				}
 				break;
 			case 'string':
 			case 'textarea':
@@ -324,7 +348,14 @@ function cfga_save_settings() {
 				$value = stripslashes($_POST[$key]);
 				break;
 		}
-		update_option($key, $value);
+		if ($key == 'cfga_global_tracking_codes') {
+			switch_to_blog(CFGA_MAIN_BLOG);
+			update_option($key, $value);
+			restore_current_blog();
+		}
+		else{
+			update_option($key, $value);
+		}
 	}
 }
 
