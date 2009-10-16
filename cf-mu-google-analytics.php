@@ -14,7 +14,6 @@ if (!defined('PLUGINDIR')) {
 	define('PLUGINDIR','wp-content/plugins');
 }
 
-
 if (is_file(trailingslashit(ABSPATH.PLUGINDIR).basename(__FILE__))) {
 	define('CFGA_FILE', trailingslashit(ABSPATH.PLUGINDIR).basename(__FILE__));
 }
@@ -22,17 +21,17 @@ else if (is_file(trailingslashit(ABSPATH.PLUGINDIR).dirname(__FILE__).'/'.basena
 	define('CFGA_FILE', trailingslashit(ABSPATH.PLUGINDIR).dirname(__FILE__).'/'.basename(__FILE__));
 }
 
+/* Set our main blog ID for the mu site (where the options will be stored) */
 define('CFGA_MAIN_BLOG', apply_filters('cfga_main_blog_id',1));
 
 function cfga_init() {
 	if (is_admin() && !class_exists("cf_input_block")) {
-
-		echo '
+		?>
 <div class="error">
 	<h3>A required Plugin is not installed or activated:</h3>
 	<p>The Required Plugin "CF-POST-META" either is not installed, or it needs to be activated. Please activate the plugin and try again.</p>
 </div>
-		';
+		<?php
 	}
 
 }
@@ -87,9 +86,6 @@ function cfga_get_local_tracker_accounts() {
 function cfga_request_handler() {
 	if (!empty($_GET['cf_action'])) {
 		switch ($_GET['cf_action']) {
-			case 'cfga_setup_js':
-				cfga_setup_js();
-				break;
 			case 'cfga_insert_accounts_js':
 				cfga_insert_accounts_js();
 				break;
@@ -131,27 +127,7 @@ document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.
 	}
 }
 add_action('wp_footer','cfga_js',10);
-// wp_enqueue_script('cfga_setup_js', trailingslashit(get_bloginfo('url')).'?cf_action=cfga_setup_js', array('jquery'));
 
-/*
-$example_settings = array(
-	'key' => array(
-		'type' => 'int',
-		'label' => 'Label',
-		'default' => 5,
-		'help' => 'Some help text here',
-	),
-	'key' => array(
-		'type' => 'select',
-		'label' => 'Label',
-		'default' => 'val',
-		'help' => 'Some help text here',
-		'options' => array(
-			'value' => 'Display'
-		),
-	),
-);
-*/
 $cfga_settings = array(
 	'cfga_global_tracking_codes' => array(
 		'name' => 'cfga_global_tracking_codes',
