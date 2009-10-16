@@ -1,4 +1,7 @@
 # CF MU Google Analytics Changelog
 
+## 1.0.1
+- Code around php warning if all codes deleted from settings page
+
 ## 1.0
 - Initial release
