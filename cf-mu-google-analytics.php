@@ -3,7 +3,7 @@
 Plugin Name: cf-mu-google-analytics 
 Plugin URI: http://crowdfavorite.com 
 Description: Allows Network sites to have multiple google analytics accounts tracking at the same time. Initial version Requires CF-Post-Meta.
-Version: .25 
+Version: .75 
 Author: Crowd Favorite
 Author URI: http://crowdfavorite.com
 */
@@ -26,13 +26,6 @@ else if (is_file(trailingslashit(ABSPATH.PLUGINDIR).dirname(__FILE__).'/'.basena
 
 define('CFGA_MAIN_BLOG', apply_filters('cfga_main_blog_id',1));
 
-register_activation_hook(CFGA_FILE, 'cfga_install');
-
-function cfga_install() {
-// TODO
-}
-
-
 function cfga_init() {
 	if (is_admin() && !class_exists("cf_input_block")) {
 
@@ -43,9 +36,7 @@ function cfga_init() {
 </div>
 		';
 	}
-	echo '<pre>'.cfga_get_global_tracker_accounts().'</pre>';echo '<pre>'.cfga_get_local_tracker_accounts().'</pre>';
-	cfga_get_local_tracker_accounts();
-	// wp_die('testing the stinking code retrieval');
+
 }
 add_action('init', 'cfga_init');
 
