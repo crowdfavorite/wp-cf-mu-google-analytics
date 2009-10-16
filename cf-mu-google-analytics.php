@@ -89,11 +89,6 @@ function cfga_get_local_tracker_accounts() {
 function cfga_request_handler() {
 	if (!empty($_GET['cf_action'])) {
 		switch ($_GET['cf_action']) {
-
-			case 'cfga_admin_js':
-				cfga_admin_js();
-				break;
-			
 			case 'cfga_setup_js':
 				cfga_setup_js();
 				break;
@@ -104,7 +99,6 @@ function cfga_request_handler() {
 	}
 	if (!empty($_POST['cf_action'])) {
 		switch ($_POST['cf_action']) {
-
 			case 'cfga_update_settings':
 				cfga_save_settings();
 				wp_redirect(trailingslashit(get_bloginfo('wpurl')).'wp-admin/options-general.php?page='.basename(__FILE__).'&updated=true');
@@ -141,15 +135,6 @@ document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.
 add_action('wp_footer','cfga_js',10);
 // wp_enqueue_script('cfga_setup_js', trailingslashit(get_bloginfo('url')).'?cf_action=cfga_setup_js', array('jquery'));
 
-function cfga_admin_js() {
-	header('Content-type: text/javascript');
-// TODO
-	die();
-}
-
-wp_enqueue_script('cfga_admin_js', trailingslashit(get_bloginfo('url')).'?cf_action=cfga_admin_js', array('jquery'));
-
-
 /*
 $example_settings = array(
 	'key' => array(
@@ -170,21 +155,6 @@ $example_settings = array(
 );
 */
 $cfga_settings = array(
-	'cfga_local_tracking_codes' => array(
-		'name' => 'cfga_local_tracking_codes',
-		'type' => 'block',
-		'label' => 'Google Analytics Tracking Codes for this Blog',
-		'block_label' => 'Google Analytics web property IDs to use for this Blog only',
-		'default' => '',
-		'help' => 'These tracking codes will aply to this blog only, and not to ',
-		'items' => array(
-			array(
-				'name' => '_tracking_code',
-				'type' => 'text',
-				'label' => 'Enter a Google Analytics web property ID (Should be in the form of "UA-xxxxxx-x")'
-			)
-		)
-	),
 	'cfga_global_tracking_codes' => array(
 		'name' => 'cfga_global_tracking_codes',
 		'type' => 'block',
@@ -192,14 +162,33 @@ $cfga_settings = array(
 		'default' => '',
 		'blog_id' => CFGA_MAIN_BLOG,
 		'help' => '',
-		'block_label' => 'Google Analytics web property IDs to use Site-wide',
+		'block_label' => 'Google Analytics Tracking IDs to use Site-wide',
+		'add_another_button_text' => 'Add another Tracking ID for this <strong>Site</strong>',
 		'items' => array(
 			array(
 				'name' => '_tracking_code',
 				'type' => 'text',
-				'label' => 'Enter a Google Analytics web property ID (Should be in the form of "UA-xxxxxx-x")'
+				'help' => '(e.g., UA-xxxxxx-x)',
+				'label' => 'Tracking ID:'
 			)
 		),
+	),
+	'cfga_local_tracking_codes' => array(
+		'name' => 'cfga_local_tracking_codes',
+		'type' => 'block',
+		'label' => 'Google Analytics Tracking Codes for this Blog',
+		'block_label' => 'Google Analytics Tracking IDs for this Blog',
+		'add_another_button_text' => 'Add another Tracking ID for this <strong>Blog</strong>',
+		'default' => '',
+		'help' => '(e.g., UA-xxxxxx-x)',
+		'items' => array(
+			array(
+				'name' => '_tracking_code',
+				'type' => 'text',
+				'help' => '(e.g., UA-xxxxxx-x)',
+				'label' => 'Tracking ID:'
+			)
+		)
 	)
 );
 
@@ -224,7 +213,7 @@ function cfga_admin_menu() {
 	if (current_user_can('manage_options')) {
 		add_options_page(
 			__('Configure Google Analytics', '')
-			, __('cf mu google analytics', '')
+			, __('CF MU Google Analytics', '')
 			, 10
 			, basename(__FILE__)
 			, 'cfga_settings_form'
