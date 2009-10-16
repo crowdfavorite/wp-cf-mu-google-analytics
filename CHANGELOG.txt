@@ -1,5 +1,8 @@
 # CF MU Google Analytics Changelog
 
+## 1.1
+- Fixing Google Analytic Script  by setting _setAllowLinker(true)
+
 ## 1.0.1
 - Code around php warning if all codes deleted from settings page
 

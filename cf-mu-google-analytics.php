@@ -49,6 +49,7 @@ function cfga_get_global_tracker_accounts() {
 			var pageTrackerMain'.$tracker_code_name.' = _gat._getTracker("'.$tracker_code_value['_tracking_code'].'");
 			pageTrackerMain'.$tracker_code_name.'._setDomainName("none");
 			pageTrackerMain'.$tracker_code_name.'._trackPageview();
+		    pageTrackerMain'.$tracker_code_name.'._setAllowLinker(true);
 			';
 		}
 		$global_script .= '
@@ -72,6 +73,7 @@ function cfga_get_local_tracker_accounts() {
 			var pageTrackerBlog'.$tracker_code_name.' = _gat._getTracker("'.$tracker_code_value['_tracking_code'].'");
 			pageTrackerBlog'.$tracker_code_name.'._setDomainName("none");
 			pageTrackerBlog'.$tracker_code_name.'._trackPageview();
+		    pageTrackerBlog'.$tracker_code_name.'._setAllowLinker(true);
 			';
 		}
 		$local_script .= '
