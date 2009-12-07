@@ -125,7 +125,7 @@ document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.
 	} 
 	catch(err) {}
 </script>
-<?
+<?php
 	}
 }
 add_action('wp_footer','cfga_js',10);
