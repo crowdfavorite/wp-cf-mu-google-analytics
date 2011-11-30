@@ -53,6 +53,7 @@ function cfga_get_global_tracker_accounts() {
 			';
 		}
 		$global_script .= '
+			pageTrackerMain0._setDomainName("internationalliving.com");
 			// end site wide tracker code
 		';
 	
